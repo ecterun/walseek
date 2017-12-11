@@ -1,1 +1,3 @@
 # walseek
+
+init
