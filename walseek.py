@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import requests, json, datetime, subprocess, os, time
+import requests, json, datetime, subprocess, os, time, glob
 from subprocess import call, Popen
 from time import strftime
 def onlinelookup(itemid):
@@ -37,6 +37,8 @@ def local_query(storenum, query='LEGO'):
             json.dump(r.json(), outfile)
     print 'creating full_query file'
     call("jq --slurp '[.[].results[]]' /opt/walmart/python/data/local/local_query-" + storenum + "*.json > /opt/walmart/python/data/local/full_query-" + storenum + "-" + datestamp + ".json", shell=True )
+    for f in glob.glob("/opt/walmart/python/data/local/local_query-%s-*.json" % storenum):
+        os.remove(f)
 
 
 def get_local_item_data(itemid, storenum, strdate=strftime("%m%d")):
