@@ -1,7 +1,9 @@
 #!/usr/bin/python
 import requests, json, datetime, subprocess, os, time, glob
+import seekconfig as config
 from subprocess import call, Popen
 from time import strftime
+
 
 def walseek_init():
     now = datetime.datetime.now()
@@ -20,8 +22,7 @@ def onlinelookup(itemid):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
 
-    with open('/opt/walmart/python/.walmartkey', 'r') as keyfile:
-        apikey = keyfile.read().strip('\n')
+    apikey = config.api_['key']
     r = requests.get('http://api.walmartlabs.com/v1/items/%s?format=json&apiKey=%s' % (itemid, apikey))
 
     #if r.status_code == 200:
@@ -208,37 +209,37 @@ def check_compare_data(storenum):
 
 def main():
     walseek_init()
-    print ("Running pricechecker")
+
+    for store in config.store_list:
+        compare_store(store)
+
+    for store in config.store_list:
+        check_compare_data(store)
 
 
 #Full Local Compare
-    compare_store('1294')
-    compare_store('1515')
-    compare_store('1551')
-    compare_store('2452')
-    compare_store('2828')
-    compare_store('2936')
-    compare_store('5438')
-    compare_store('5668')
-    compare_store('5669')
-    compare_store('6394')
+    #compare_store('1294')
+    #compare_store('1515')
+    #compare_store('1551')
+    #compare_store('2452')
+    #compare_store('2828')
+    #compare_store('2936')
+    #compare_store('5438')
+    #compare_store('5668')
+    #compare_store('5669')
+    #compare_store('6394')
 
 #Full Check Compare Data
-    check_compare_data('1294')
-    check_compare_data('1515')
-    check_compare_data('1551')
-    check_compare_data('2452')
-    check_compare_data('2828')
-    check_compare_data('2936')
-    check_compare_data('5438')
-    check_compare_data('5668')
-    check_compare_data('5669')
-    check_compare_data('6394')
-
-#how to parse json
-#json_str = r.json()
-#print json_str['value']
-
+    #check_compare_data('1294')
+    #check_compare_data('1515')
+    #check_compare_data('1551')
+    #check_compare_data('2452')
+    #check_compare_data('2828')
+    #check_compare_data('2936')
+    #check_compare_data('5438')
+    #check_compare_data('5668')
+    #check_compare_data('5669')
+    #check_compare_data('6394')
 
 if __name__ == '__main__':
     main()
