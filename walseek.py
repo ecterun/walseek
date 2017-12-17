@@ -9,7 +9,14 @@ def walseek_init():
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
 
-    path =  '/opt/walmart/python/data/online/%s' % datestamp
+    for loc in config.dir_:
+        try:
+            os.makedirs(config.dir_[loc])
+        except OSError:
+            if not os.path.isdir(config.dir_[loc]):
+                raise
+
+    path =  config.dir_['online'] + '/' + datestamp
     try:
         os.makedirs(path)
     except OSError:
@@ -26,7 +33,8 @@ def onlinelookup(itemid):
     r = requests.get('http://api.walmartlabs.com/v1/items/%s?format=json&apiKey=%s' % (itemid, apikey))
 
     #if r.status_code == 200:
-    with open('/opt/walmart/python/data/online/%s/webData-%s-%s.json' % (datestamp,itemid,datestamp), 'w') as outfile:
+    filepath = '%s/%s/%s-%s-%s.json' % (config.dir_['online'],datestamp,config.file_['onlineItem'],itemid,datestamp)
+    with open(filepath, 'w') as outfile:
         if r.status_code == 200:
             json.dump(r.json(), outfile)
             print "writing to %s" % outfile.name
@@ -35,8 +43,8 @@ def onlinelookup(itemid):
             print "writing empty file %s" % outfile.name
     #else print to error logs
 
+
 def local_query(storenum, query='LEGO'):
-    #storenum = '5669'
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
     offset = 0
@@ -47,16 +55,19 @@ def local_query(storenum, query='LEGO'):
         print 'http://search.mobile.walmart.com/search?query=%s&store=%s&size=%d&offset=%d' % (query, storenum, size, offset)
         totalcount =  r.json()['totalCount']
         offset = r.json()['offset'] + r.json()['count']
-        with open('/opt/walmart/python/data/local/local_query-%s-%d.json' % (storenum, offset), 'w') as outfile:
+        filepath = '%s/%s-%s-%d.json' % (config.dir_['local'],config.file_['localQuery'],storenum,offset)
+        with open(filepath, 'w') as outfile:
             json.dump(r.json(), outfile)
     print 'creating full_query file'
-    call("jq --slurp '[.[].results[]]' /opt/walmart/python/data/local/local_query-" + storenum + "*.json > /opt/walmart/python/data/local/full_query-" + storenum + "-" + datestamp + ".json", shell=True )
-    for f in glob.glob("/opt/walmart/python/data/local/local_query-%s-*.json" % storenum):
+    localwildcard = '%s/%s-%s*.json' % (config.dir_['local'],config.file_['localQuery'],storenum)
+    fullquery = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,datestamp)
+    call("jq --slurp '[.[].results[]]' " + localwildcard + " > " + fullquery, shell=True )
+    for f in glob.glob(localwildcard):
         os.remove(f)
 
 
 def get_local_item_data(itemid, storenum, strdate=strftime("%m%d")):
-    localfile = '/opt/walmart/python/data/local/full_query-%s-%s.json' % (storenum,strdate)
+    localfile = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,strdate)
     if not os.path.isfile(localfile):
         local_query(storenum)
 
@@ -81,11 +92,12 @@ def get_local_item_data(itemid, storenum, strdate=strftime("%m%d")):
         }
     return data
 
+
 def get_online_item_data(itemid):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
 
-    onlinefile = '/opt/walmart/python/data/online/%s/webData-%s-%s.json' % (datestamp, itemid, datestamp)
+    onlinefile = '%s/%s/%s-%s-%s.json' % (config.dir_['online'],datestamp,config.file_['onlineItem'],itemid,datestamp)
     if not os.path.isfile(onlinefile):
         onlinelookup(itemid)
 
@@ -106,7 +118,6 @@ def get_online_item_data(itemid):
     return data
 
 
-
 def compare_item_data(itemid, storenum):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
@@ -125,7 +136,6 @@ def compare_item_data(itemid, storenum):
         discount = (1-(float(localcents)/float(onlinecents)))*100
     else:
         discount = 0.0
-    #print discount
 
     itemdata = {
             'itemId': itemid,
@@ -145,7 +155,8 @@ def compare_item_data(itemid, storenum):
             'url': localdata['url']
             }
 
-    with open ('/opt/walmart/python/data/compare/compare-%s-%s.json' % (storenum, datestamp), 'a') as outfile:
+    comparefilepath = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum,datestamp)
+    with open (comparefilepath, 'a') as outfile:
         json.dump(itemdata, outfile)
         outfile.write('\n')
         print "writing to %s" % outfile.name
@@ -155,7 +166,7 @@ def compare_store(storenum):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
 
-    localfile = '/opt/walmart/python/data/local/full_query-%s-%s.json' % (storenum,datestamp)
+    localfile = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,datestamp)
     if not os.path.isfile(localfile):
         local_query(storenum)
 
@@ -165,13 +176,14 @@ def compare_store(storenum):
     for line in cmd_out.splitlines():
         compare_item_data(line, storenum)
 
+
 def check_compare_data(storenum):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
     yesterday = str(now.month) + str(now.day -1)
 
-    currentcompare = '/opt/walmart/python/data/compare/compare-%s-%s.json' % (storenum, datestamp)
-    previouscompare = '/opt/walmart/python/data/compare/compare-%s-%s.json' % (storenum, yesterday)
+    currentcompare = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum, datestamp)
+    previouscompare = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum, yesterday)
 
     cmd = Popen("jq -c 'select(.localDiscount!=\"0\")|.' " + currentcompare, stdout=subprocess.PIPE,shell=True)
     cmd_out, cmd_err = cmd.communicate()
@@ -201,11 +213,12 @@ def check_compare_data(storenum):
                             },
                         'link': 'https://walmart.com' + curjson['url']
                         }
-            with open ('/opt/walmart/python/data/discounts/discounts-%s.json' % datestamp, 'a') as outfile:
+            discountfilepath = '%s/%s-%s.json' % (config.dir_['discount'],config.file_['discount'],datestamp)
+            with open (discountfilepath, 'a') as outfile:
                 json.dump(discountdata, outfile)
                 outfile.write('\n')
             print discountdata
-            #print 'StoreNum:%s ItemId:%s CurrentPrice:%s PreviousPrice:%s' % (storenum, itemid, curprice, prevprice)
+
 
 def main():
     walseek_init()
