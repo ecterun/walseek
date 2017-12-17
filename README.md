@@ -1,6 +1,7 @@
 # walseek
 
 Todo: ordered by priority
+- Add check to make sure seekconfig.py is filled out correctly
 - Create global variables for file systems and such
 - display the time range when the price drop took place
 - display which store its for by location
