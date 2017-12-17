@@ -1,11 +1,7 @@
 # walseek
 
 Todo: ordered by priority
-- Update output with better info
 - Create global variables for file systems and such
-- create local date directory
-- clean up local_query files
-- write price drops to a standard file to save the data
 - display the time range when the price drop took place
 - display which store its for by location
 - Standardize Timing across functions

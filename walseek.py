@@ -2,6 +2,19 @@
 import requests, json, datetime, subprocess, os, time, glob
 from subprocess import call, Popen
 from time import strftime
+
+def walseek_init():
+    now = datetime.datetime.now()
+    datestamp = str(now.month) + str(now.day)
+
+    path =  '/opt/walmart/python/data/online/%s' % datestamp
+    try:
+        os.makedirs(path)
+    except OSError:
+        if not os.path.isdir(path):
+            raise
+
+
 def onlinelookup(itemid):
     #itemid = '951814057'
     now = datetime.datetime.now()
@@ -175,21 +188,28 @@ def check_compare_data(storenum):
         curprice = curjson['price']['localPriceInCents']
         pricelowered = True if curprice < prevprice else False
         if pricelowered:
-            print 'StoreNum:%s ItemId:%s CurrentPrice:%s PreviousPrice:%s' % (storenum, itemid, curprice, prevprice)
+            discount = curjson['localDiscount'] + '%'
+            discountdata = {
+                        'itemId': itemid,
+                        'storeNumber': storenum,
+                        'itemName': curjson['name']['localName'],
+                        'price':{
+                            'localDiscount': curjson['localDiscount'] + '%',
+                            'newPrice': curjson['price']['localPriceInCents'],
+                            'previousPrice': prevprice
+                            },
+                        'link': 'https://walmart.com' + curjson['url']
+                        }
+            with open ('/opt/walmart/python/data/discounts/discounts-%s.json' % datestamp, 'a') as outfile:
+                json.dump(discountdata, outfile)
+                outfile.write('\n')
+            print discountdata
+            #print 'StoreNum:%s ItemId:%s CurrentPrice:%s PreviousPrice:%s' % (storenum, itemid, curprice, prevprice)
 
 def main():
+    walseek_init()
     print ("Running pricechecker")
-    #onlinelookup('951814057')
-    #local_query('5669')
-    #local_query('5669', 'LEGO')
-    #compare_item_data('951814057', '5669')
-    #get_local_item_data('946006306', '5669')
-    #get_online_item_data('951814057')
 
-#Test compares
-    #compare_item_data('951814057', '5669')
-    #compare_item_data('946006306', '5669')
-    #compare_item_data('799194178', '5669')
 
 #Full Local Compare
     compare_store('1294')
