@@ -1,13 +1,29 @@
 # walseek
 
 Todo: ordered by priority
-- Add check to make sure seekconfig.py is filled out correctly
-- display the time range when the price drop took place
-- display which store its for by location
-- Standardize Timing across functions
-- move from MMDD to MMDD-HH or possibly MMDD-HHMM to allow multiple runs a day
-- Update check compares to search through multiple compare files till it finds a drop, or its been x number of days 
-- Build in throttle to 5 calls per second to walmart API
-- Kick off multiple store searches at once
-- replace jq command line calls with python calls
-- auto cleanup of older files
+
+- Allow multiple Runs per day
+  - Add hours / minute timestamp to fullquery file
+  - add hours / minute timestamp to compare file
+  - add logic to see which is the newest and previous file (fullquery / compare )
+  
+- Add timestamp range to when price drop took place (between what time stamp compare files it was found)
+  - pre-req of Allowing multiple Runs per day, as it requires more accurate timestamps on compare files.
+  
+- Additonal Store information
+  - Add store api call to pull data from stores
+  - Add store data to final output ( street address, state, zip, etc)
+
+- Throttle online api calls to 5 per second
+
+- Kick off multiple store searches at once (throttle api calls pre-req)
+  - pre-req of Throttle online api calls to 5 per second, otherwise we will have failed api calls.
+
+- Add check to make sure seekconfig.py is valid
+  - Add api key validation call
+  - Validate Store String
+  - Validate all required variables exist
+
+- replace jq command line calls with python native lib calls
+
+- cleanup older files older then x days
