@@ -4,7 +4,6 @@ import seekconfig as config
 from subprocess import call, Popen
 from time import strftime
 
-
 def walseek_init():
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
@@ -25,7 +24,6 @@ def walseek_init():
 
 
 def onlinelookup(itemid):
-    #itemid = '951814057'
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
 
@@ -60,16 +58,16 @@ def local_query(storenum, query='LEGO'):
             json.dump(r.json(), outfile)
     print 'creating full_query file'
     localwildcard = '%s/%s-%s*.json' % (config.dir_['local'],config.file_['localQuery'],storenum)
-    fullquery = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,datestamp)
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%Y%m%dT%H%M%S")
+    fullquery = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,timestamp)
     call("jq --slurp '[.[].results[]]' " + localwildcard + " > " + fullquery, shell=True )
     for f in glob.glob(localwildcard):
         os.remove(f)
 
 
-def get_local_item_data(itemid, storenum, strdate=strftime("%m%d")):
-    localfile = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,strdate)
-    if not os.path.isfile(localfile):
-        local_query(storenum)
+def get_local_item_data(itemid, storenum):
+    localfile = sorted(glob.glob('%s/%s-%s-*.json' % (config.dir_['local'],config.file_['fullQuery'],storenum)))[-1]
 
     cmd = Popen("jq '[.[] | select(.productId.WWWItemId==\"" + itemid + "\")]|.[0]' " + localfile, stdout=subprocess.PIPE,shell=True)
     cmd_out, cmd_err = cmd.communicate()
@@ -155,7 +153,7 @@ def compare_item_data(itemid, storenum):
             'url': localdata['url']
             }
 
-    comparefilepath = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum,datestamp)
+    comparefilepath = '%s/%s-%s-temp.json' % (config.dir_['compare'],config.file_['compare'],storenum)
     with open (comparefilepath, 'a') as outfile:
         json.dump(itemdata, outfile)
         outfile.write('\n')
@@ -163,12 +161,8 @@ def compare_item_data(itemid, storenum):
 
 
 def compare_store(storenum):
-    now = datetime.datetime.now()
-    datestamp = str(now.month) + str(now.day)
-
-    localfile = '%s/%s-%s-%s.json' % (config.dir_['local'],config.file_['fullQuery'],storenum,datestamp)
-    if not os.path.isfile(localfile):
-        local_query(storenum)
+    local_query(storenum)
+    localfile = sorted(glob.glob('%s/%s-%s-*.json' % (config.dir_['local'],config.file_['fullQuery'],storenum)))[-1]
 
     cmd = Popen("jq -r '.[].productId.WWWItemId' " + localfile, stdout=subprocess.PIPE,shell=True)
     cmd_out, cmd_err = cmd.communicate()
@@ -176,48 +170,57 @@ def compare_store(storenum):
     for line in cmd_out.splitlines():
         compare_item_data(line, storenum)
 
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%Y%m%dT%H%M%S")
+    tempfile = '%s/%s-%s-temp.json' % (config.dir_['compare'],config.file_['compare'],storenum)
+    newfile = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum, timestamp)
+    os.rename(tempfile, newfile)
+
 
 def check_compare_data(storenum):
     now = datetime.datetime.now()
     datestamp = str(now.month) + str(now.day)
     yesterday = str(now.month) + str(now.day -1)
 
-    currentcompare = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum, datestamp)
-    previouscompare = '%s/%s-%s-%s.json' % (config.dir_['compare'],config.file_['compare'],storenum, yesterday)
+    compareList = sorted(glob.glob('%s/%s-%s-*.json' % (config.dir_['compare'],config.file_['compare'],storenum)))
+    currentcompare = compareList[-1]
+    previouscompare = compareList[-2]
 
-    cmd = Popen("jq -c 'select(.localDiscount!=\"0\")|.' " + currentcompare, stdout=subprocess.PIPE,shell=True)
-    cmd_out, cmd_err = cmd.communicate()
-    print 'Comparing StoreNum:%s data from %s and %s.' % (storenum, datestamp, yesterday)
-    for line in cmd_out.splitlines():
-        curjson = json.loads(line)
-        itemid = curjson['itemId']
-        scmd = Popen("jq -c 'select(.itemId==\"" + itemid + "\")' " + previouscompare + " |head -n 1", stdout=subprocess.PIPE,shell=True)
-        scmd_out, scmd_err = scmd.communicate()
-        if scmd_out == '':
-            prevprice = -1
-        else:
-            prevjson = json.loads(scmd_out)
-            prevprice = prevjson['price']['localPriceInCents']
-        curprice = curjson['price']['localPriceInCents']
-        pricelowered = True if curprice < prevprice else False
-        if pricelowered:
-            discount = curjson['localDiscount'] + '%'
-            discountdata = {
-                        'itemId': itemid,
-                        'storeNumber': storenum,
-                        'itemName': curjson['name']['localName'],
-                        'price':{
-                            'localDiscount': curjson['localDiscount'] + '%',
-                            'newPrice': curjson['price']['localPriceInCents'],
-                            'previousPrice': prevprice
-                            },
-                        'link': 'https://walmart.com' + curjson['url']
-                        }
-            discountfilepath = '%s/%s-%s.json' % (config.dir_['discount'],config.file_['discount'],datestamp)
-            with open (discountfilepath, 'a') as outfile:
-                json.dump(discountdata, outfile)
-                outfile.write('\n')
-            print discountdata
+
+    if os.path.isfile(previouscompare):
+        cmd = Popen("jq -c 'select(.localDiscount!=\"0\")|.' " + currentcompare, stdout=subprocess.PIPE,shell=True)
+        cmd_out, cmd_err = cmd.communicate()
+        print 'Comparing StoreNum:%s data from %s and %s.' % (storenum, datestamp, yesterday)
+        for line in cmd_out.splitlines():
+            curjson = json.loads(line)
+            itemid = curjson['itemId']
+            scmd = Popen("jq -c 'select(.itemId==\"" + itemid + "\")' " + previouscompare + " |head -n 1", stdout=subprocess.PIPE,shell=True)
+            scmd_out, scmd_err = scmd.communicate()
+            if scmd_out == '':
+                prevprice = -1
+            else:
+                prevjson = json.loads(scmd_out)
+                prevprice = prevjson['price']['localPriceInCents']
+            curprice = curjson['price']['localPriceInCents']
+            pricelowered = True if curprice < prevprice else False
+            if pricelowered:
+                discount = curjson['localDiscount'] + '%'
+                discountdata = {
+                            'itemId': itemid,
+                            'storeNumber': storenum,
+                            'itemName': curjson['name']['localName'],
+                            'price':{
+                                'localDiscount': curjson['localDiscount'] + '%',
+                                'newPrice': curjson['price']['localPriceInCents'],
+                                'previousPrice': prevprice
+                                },
+                            'link': 'https://walmart.com' + curjson['url']
+                            }
+                discountfilepath = '%s/%s-%s.json' % (config.dir_['discount'],config.file_['discount'],datestamp)
+                with open (discountfilepath, 'a') as outfile:
+                    json.dump(discountdata, outfile)
+                    outfile.write('\n')
+                print discountdata
 
 
 def main():

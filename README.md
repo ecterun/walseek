@@ -2,11 +2,8 @@
 
 Todo: ordered by priority
 
-- Allow multiple Runs per day
-  - Add hours / minute timestamp to fullquery file
-  - add hours / minute timestamp to compare file
-  - add logic to see which is the newest and previous file (fullquery / compare )
-  
+- check to see if two compare files exist before trying to compare
+
 - Add timestamp range to when price drop took place (between what time stamp compare files it was found)
   - pre-req of Allowing multiple Runs per day, as it requires more accurate timestamps on compare files.
   
