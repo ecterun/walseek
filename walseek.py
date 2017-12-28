@@ -184,7 +184,11 @@ def check_compare_data(storenum):
 
     compareList = sorted(glob.glob('%s/%s-%s-*.json' % (config.dir_['compare'],config.file_['compare'],storenum)))
     currentcompare = compareList[-1]
-    previouscompare = compareList[-2]
+    try:
+        previouscompare = compareList[-2]
+    except IndexError:
+        print 'No previous compare for StoreNumber: %s' % storenum
+        return
 
 
     if os.path.isfile(previouscompare):
@@ -232,30 +236,6 @@ def main():
     for store in config.store_list:
         check_compare_data(store)
 
-
-#Full Local Compare
-    #compare_store('1294')
-    #compare_store('1515')
-    #compare_store('1551')
-    #compare_store('2452')
-    #compare_store('2828')
-    #compare_store('2936')
-    #compare_store('5438')
-    #compare_store('5668')
-    #compare_store('5669')
-    #compare_store('6394')
-
-#Full Check Compare Data
-    #check_compare_data('1294')
-    #check_compare_data('1515')
-    #check_compare_data('1551')
-    #check_compare_data('2452')
-    #check_compare_data('2828')
-    #check_compare_data('2936')
-    #check_compare_data('5438')
-    #check_compare_data('5668')
-    #check_compare_data('5669')
-    #check_compare_data('6394')
 
 if __name__ == '__main__':
     main()
