@@ -2,9 +2,6 @@
 
 Todo: ordered by priority
 
-- Add timestamp range to when price drop took place (between what time stamp compare files it was found)
-  - pre-req of Allowing multiple Runs per day, as it requires more accurate timestamps on compare files.
-  
 - Additonal Store information
   - Add store api call to pull data from stores
   - Add store data to final output ( street address, state, zip, etc)
