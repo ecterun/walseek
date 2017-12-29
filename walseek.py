@@ -194,6 +194,8 @@ def check_compare_data(storenum):
     if os.path.isfile(previouscompare):
         cmd = Popen("jq -c 'select(.localDiscount!=\"0\")|.' " + currentcompare, stdout=subprocess.PIPE,shell=True)
         cmd_out, cmd_err = cmd.communicate()
+        currentTime = currentcompare.split('-')[-1].split('.')[0]
+        previousTime = previouscompare.split('-')[-1].split('.')[0]
         print 'Comparing StoreNum:%s data from %s and %s.' % (storenum, datestamp, yesterday)
         for line in cmd_out.splitlines():
             curjson = json.loads(line)
@@ -212,11 +214,16 @@ def check_compare_data(storenum):
                 discountdata = {
                             'itemId': itemid,
                             'storeNumber': storenum,
+                            'quantity': curjson['localQuantity'],
                             'itemName': curjson['name']['localName'],
                             'price':{
                                 'localDiscount': curjson['localDiscount'] + '%',
                                 'newPrice': curjson['price']['localPriceInCents'],
                                 'previousPrice': prevprice
+                                },
+                            'timing':{
+                                'currentRunTime': currentTime,
+                                'previousRunTime': previousTime,
                                 },
                             'link': 'https://walmart.com' + curjson['url']
                             }
