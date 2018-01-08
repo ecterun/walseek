@@ -107,11 +107,14 @@ def get_online_item_data(itemid):
     saleprice = onlinejson['salePrice'] if 'salePrice' in onlinejson else 0
     modelnum = onlinejson['modelNumber'] if 'modelNumber' in onlinejson else 'null'
 
+    image = [item for item in onlinejson['imageEntities'] if item['entityType'] == 'PRIMARY'][0]['mediumImage'] if 'imageEntities' in onlinejson else onlinejson['mediumImage']
+
     data = {
         'name': name,
         'msrp': msrp,
         'salePrice': saleprice,
-        'modelNumber': modelnum
+        'modelNumber': modelnum,
+        'image': image
         }
     return data
 
@@ -150,7 +153,8 @@ def compare_item_data(itemid, storenum):
             'localDiscount': "%.f" % round(discount,2),
             'localQuantity': localdata['quantity'],
             'modelNumber': onlinedata['modelNumber'],
-            'url': localdata['url']
+            'url': localdata['url'],
+            'image': onlinedata['image']
             }
 
     comparefilepath = '%s/%s-%s-temp.json' % (config.dir_['compare'],config.file_['compare'],storenum)
@@ -225,7 +229,8 @@ def check_compare_data(storenum):
                                 'currentRunTime': currentTime,
                                 'previousRunTime': previousTime,
                                 },
-                            'link': 'https://walmart.com' + curjson['url']
+                            'link': 'https://walmart.com' + curjson['url'],
+                            'image': curjson['image']
                             }
                 discountfilepath = '%s/%s-%s.json' % (config.dir_['discount'],config.file_['discount'],datestamp)
                 with open (discountfilepath, 'a') as outfile:
